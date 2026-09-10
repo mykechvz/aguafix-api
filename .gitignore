@@ -1,0 +1,37 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# env
+.env
+.env.local
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes are managed by Docker itself, nothing to ignore here
