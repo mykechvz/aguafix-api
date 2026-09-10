@@ -1,0 +1,76 @@
+### AguaFix API — Pruebas manuales de los 4 endpoints
+### Requiere la extensión "REST Client" en VS Code (o puedes copiar cada bloque como curl).
+### Flujo: registro -> login -> crear reporte (con el token) -> listar reportes.
+
+@baseUrl = http://localhost:3000
+
+### 1. Registrar un usuario nuevo
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Miguel Chavez",
+  "email": "miguel@test.com",
+  "password": "secret123"
+}
+
+### 2. Login (devuelve el accessToken que se usa en las siguientes peticiones)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "miguel@test.com",
+  "password": "secret123"
+}
+
+### 3. Crear un reporte de fuga (protegido con JWT, dispara el correo a la cuadrilla)
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "address": "Av. Reforma 123, Col. Centro",
+  "description": "Fuga grande saliendo de la banqueta, mojando la calle",
+  "severity": "high",
+  "reporterPhone": "555-123-4567"
+}
+
+### 4. Listar todos los reportes (protegido con JWT)
+GET {{baseUrl}}/reports
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### --- Casos negativos de referencia ---
+
+### Login con credenciales inválidas -> 400
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "miguel@test.com",
+  "password": "password-incorrecto"
+}
+
+### Crear reporte sin token -> 401
+POST {{baseUrl}}/reports
+Content-Type: application/json
+
+{
+  "address": "Calle sin token",
+  "description": "No debería pasar",
+  "severity": "low",
+  "reporterPhone": "555-000-0000"
+}
+
+### Crear reporte con severity inválida -> 400
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "address": "Calle severidad inválida",
+  "description": "severity fuera del enum",
+  "severity": "urgente",
+  "reporterPhone": "555-000-0000"
+}
