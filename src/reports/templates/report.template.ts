@@ -17,7 +17,10 @@ const SEVERITY_COLORS: Record<string, string> = {
   high: '#c62828',
 };
 
-export function generateReportTemplate(dto: ReportEmailData): string {
+export function generateReportTemplate(
+  dto: ReportEmailData,
+  photoUrl: string,
+): string {
   const severityLabel = SEVERITY_LABELS[dto.severity] ?? dto.severity;
   const severityColor = SEVERITY_COLORS[dto.severity] ?? '#455a64';
 
@@ -56,6 +59,8 @@ export function generateReportTemplate(dto: ReportEmailData): string {
                 <td style="padding: 8px 0;">${dto.reporterPhone}</td>
               </tr>
             </table>
+            <p style="margin: 20px 0 8px; color: #333333; font-size: 14px; font-weight: bold;">Foto de la fuga</p>
+            <img src="${photoUrl}" alt="Foto de la fuga" style="display: block; width: 100%; max-width: 512px; border-radius: 6px; border: 1px solid #e0e0e0;" />
           </td>
         </tr>
         <tr>

@@ -8,7 +8,7 @@ import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({ useFactory: () => dataSourceOptions }),
+    TypeOrmModule.forRootAsync({ useFactory: () => ({ ...dataSourceOptions, migrationsRun: true }) }),
     AuthModule,
     ReportsModule,
   ],

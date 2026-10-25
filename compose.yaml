@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-aguafix}
       POSTGRES_DB: ${DB_NAME:-aguafix}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - aguafix-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +16,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    image: ${DOCKER_USER}/aguafix-api:latest
+    container_name: aguafix-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Dentro de la red de compose la API ve a Postgres por su nombre de servicio
+      DB_HOST: postgres
+      DB_PORT: 5432
+    ports:
+      - "${PORT:-3000}:3000"
 
 volumes:
   aguafix-postgres-data:

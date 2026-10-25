@@ -17,6 +17,12 @@ export class Report {
   @Column()
   reporterPhone: string;
 
+  @Column()
+  photoUrl: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  repairPhotoUrl: string | null;
+
   @Column({ default: false })
   isResolved: boolean;
 

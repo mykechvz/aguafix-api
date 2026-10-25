@@ -25,17 +25,34 @@ Content-Type: application/json
   "password": "secret123"
 }
 
-### 3. Crear un reporte de fuga (protegido con JWT, dispara el correo a la cuadrilla)
+### 3. Crear un reporte de fuga con foto (multipart; protegido con JWT, sube la foto a S3 y dispara el correo)
+### Cambia la ruta de la imagen por una foto real en tu máquina.
 POST {{baseUrl}}/reports
-Content-Type: application/json
 Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=----aguafix
 
-{
-  "address": "Av. Reforma 123, Col. Centro",
-  "description": "Fuga grande saliendo de la banqueta, mojando la calle",
-  "severity": "high",
-  "reporterPhone": "555-123-4567"
-}
+------aguafix
+Content-Disposition: form-data; name="address"
+
+Av. Reforma 123, Col. Centro
+------aguafix
+Content-Disposition: form-data; name="description"
+
+Fuga grande saliendo de la banqueta, mojando la calle
+------aguafix
+Content-Disposition: form-data; name="severity"
+
+high
+------aguafix
+Content-Disposition: form-data; name="reporterPhone"
+
+555-123-4567
+------aguafix
+Content-Disposition: form-data; name="photo"; filename="fuga.jpg"
+Content-Type: image/jpeg
+
+< ./fuga.jpg
+------aguafix--
 
 ### 4. Listar todos los reportes (protegido con JWT)
 GET {{baseUrl}}/reports

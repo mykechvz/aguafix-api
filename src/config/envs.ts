@@ -19,5 +19,10 @@ export const envs = {
   smtpPass: env.get('SMTP_PASS').required().asString(),
   smtpFrom: env.get('SMTP_FROM').required().asString(),
 
+  awsRegion: env.get('AWS_REGION').required().asString(),
+  awsAccessKeyId: env.get('AWS_ACCESS_KEY_ID').required().asString(),
+  awsSecretAccessKey: env.get('AWS_SECRET_ACCESS_KEY').required().asString(),
+  awsS3Bucket: env.get('AWS_S3_BUCKET').required().asString(),
+
   mailCrewAddress: env.get('MAIL_CREW_ADDRESS').required().asEmailString(),
 };

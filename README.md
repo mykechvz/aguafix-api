@@ -36,10 +36,12 @@ cp .env.example .env
 | `PORT` | Puerto en el que corre la API (default `3000`) |
 | `DB_HOST` | Host de PostgreSQL (`localhost` en desarrollo) |
 | `DB_PORT` | Puerto de PostgreSQL en el host. **Usamos `5433` por defecto** para no chocar con un Postgres nativo que pudiera estar corriendo en el puerto `5432` de tu máquina |
-| `DB_USER` / `DB_PASSWORD` / `DB_NAME` | Credenciales y nombre de la base de datos (deben coincidir con `docker-compose.yml`) |
+| `DB_USER` / `DB_PASSWORD` / `DB_NAME` | Credenciales y nombre de la base de datos (deben coincidir con `compose.yaml`) |
 | `JWT_SECRET` | Secreto usado para firmar los tokens JWT |
 | `JWT_EXPIRATION` | Expiración del token, formato de la librería `ms` (ej. `1h`, `2d`) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Credenciales del servidor SMTP para enviar los correos de aviso |
+| `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_S3_BUCKET` | Credenciales y bucket de S3 donde se guardan las fotos de las fugas (carpeta `reports/`) |
+| `DOCKER_USER` | Usuario de Docker Hub; `compose.yaml` lo usa para bajar la imagen publicada |
 | `MAIL_CREW_ADDRESS` | Dirección fija de la cuadrilla de mantenimiento que recibe el aviso de cada nuevo reporte |
 
 Si falta alguna variable requerida, la aplicación falla al arrancar con un mensaje claro (validado en `src/config/envs.ts`).
@@ -79,7 +81,7 @@ docker ps
 npm run migration:run
 ```
 
-Esto crea las tablas `SYSTEM_USER` y `WATER_REPORT`. Otros comandos disponibles:
+Esto crea las tablas `SYSTEM_USER` y `WATER_REPORT` (y agrega `photoUrl`/`repairPhotoUrl`). Otros comandos disponibles:
 
 ```bash
 npm run migration:generate -- src/database/migrations/NombreDeLaMigracion  # genera una migración a partir de cambios en las entidades
@@ -95,6 +97,17 @@ npm run build && npm run start:prod   # build de producción
 ```
 
 La API queda disponible en `http://localhost:3000` (o el `PORT` que hayas configurado).
+
+## Docker y CI/CD
+
+- `Dockerfile`: construye la API con `node:22-alpine` y la ejecuta con `node dist/main`. Las migraciones corren solas al arrancar.
+- `.dockerignore` excluye `.env`, `compose.yaml`, `node_modules`, `dist` y `.git`: la imagen nunca lleva credenciales.
+- `.github/workflows/docker-publish.yml`: en cada push a `main` hace login en Docker Hub (secrets `DOCKER_USER` y `DOCKER_PASSWORD`), construye la imagen y la publica como `<DOCKER_USER>/aguafix-api:latest`.
+- `compose.yaml`: levanta la imagen publicada junto con PostgreSQL, leyendo las variables desde `.env`:
+
+```bash
+docker compose up -d
+```
 
 ## Modelo de datos
 
@@ -115,6 +128,8 @@ La API queda disponible en `http://localhost:3000` (o el `PORT` que hayas config
 | `description` | string | qué se observa |
 | `severity` | string | `low` \| `medium` \| `high` |
 | `reporterPhone` | string | teléfono de contacto |
+| `photoUrl` | string | URL pública de la foto de la fuga en S3 |
+| `repairPhotoUrl` | string | null | URL de la foto de la reparación (nullable) |
 | `isResolved` | boolean | default `false` |
 | `createdAt` | timestamp | fecha del reporte |
 
@@ -171,15 +186,7 @@ Headers:
 Authorization: Bearer <accessToken>
 ```
 
-Request:
-```json
-{
-  "address": "Av. Reforma 123, Col. Centro",
-  "description": "Fuga grande saliendo de la banqueta",
-  "severity": "high",
-  "reporterPhone": "555-123-4567"
-}
-```
+Request: `multipart/form-data` con los campos de texto `address`, `description`, `severity` (`low|medium|high`), `reporterPhone` y el archivo de imagen `photo` (**obligatorio**, máx. 5 MB). La foto se sube a la carpeta `reports/` del bucket de S3.
 
 Response `201`:
 ```json
@@ -189,14 +196,15 @@ Response `201`:
   "description": "Fuga grande saliendo de la banqueta",
   "severity": "high",
   "reporterPhone": "555-123-4567",
+  "photoUrl": "https://<bucket>.s3.<region>.amazonaws.com/reports/<uuid>.jpg",
   "isResolved": false,
   "createdAt": "2026-09-10T23:11:39.806Z"
 }
 ```
 
-Al crearse el reporte se envía automáticamente un correo HTML a `MAIL_CREW_ADDRESS` con la dirección, descripción, severidad y teléfono de contacto.
+Al crearse el reporte se envía automáticamente un correo HTML a `MAIL_CREW_ADDRESS` con la dirección, descripción, severidad y teléfono de contacto, más la foto de la fuga incrustada con `<img>`.
 
-Sin token → `401 Unauthorized`. `severity` fuera de `low|medium|high` → `400 Bad Request`.
+Sin foto → `400 Bad Request`. Sin token → `401 Unauthorized`. `severity` fuera de `low|medium|high` → `400 Bad Request`.
 
 ### `GET /reports` (protegido)
 
@@ -214,6 +222,8 @@ Response `200`:
     "description": "Fuga grande saliendo de la banqueta",
     "severity": "high",
     "reporterPhone": "555-123-4567",
+    "photoUrl": "https://<bucket>.s3.<region>.amazonaws.com/reports/<uuid>.jpg",
+    "repairPhotoUrl": null,
     "isResolved": false,
     "createdAt": "2026-09-10T23:11:39.806Z"
   }

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { envs } from '../config/envs';
+import { StorageService } from '../storage/storage.service';
 import { EmailService } from '../email/email.service';
 import { ReportsRepository } from './repositories/reports.repository';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -13,16 +14,27 @@ export class ReportsService {
   constructor(
     private readonly reportsRepository: ReportsRepository,
     private readonly emailService: EmailService,
+    private readonly storageService: StorageService,
   ) {}
 
-  async create(dto: CreateReportDto): Promise<Report> {
-    const report = await this.reportsRepository.create(dto);
+  async create(
+    dto: CreateReportDto,
+    photo?: Express.Multer.File,
+  ): Promise<Report> {
+    if (!photo) {
+      throw new BadRequestException(
+        'La foto de la fuga es obligatoria (campo "photo")',
+      );
+    }
+
+    const photoUrl = await this.storageService.uploadFile(photo, 'reports');
+    const report = await this.reportsRepository.create({ ...dto, photoUrl });
 
     try {
       await this.emailService.sendEmail(
         envs.mailCrewAddress,
         `Nuevo reporte de fuga: ${dto.address}`,
-        generateReportTemplate(dto),
+        generateReportTemplate(dto, photoUrl),
       );
     } catch (error) {
       this.logger.error(
