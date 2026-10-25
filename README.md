@@ -233,3 +233,6 @@ Response `200`:
 ## Probar el flujo completo
 
 El archivo [`requests.http`](./requests.http) trae los 4 endpoints listos (register → login → crear reporte con el token → listar), más algunos casos negativos (credenciales inválidas, sin token, severity inválida). Se puede usar con la extensión **REST Client** de VS Code, o copiar cada petición como `curl`.
+
+
+ultima actualización
